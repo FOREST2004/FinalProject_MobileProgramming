@@ -1,14 +1,13 @@
 package com.example.photomanagement.ui.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -16,102 +15,158 @@ import androidx.compose.ui.unit.dp
 fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
+    var darkMode by remember { mutableStateOf(true) }
+    var autoBackup by remember { mutableStateOf(false) }
+    var highQualitySave by remember { mutableStateOf(true) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Settings") }
             )
         }
-    ) { paddingValues ->
-        LazyColumn(
+    ) { innerPadding ->
+        Column(
             modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp)
+                .padding(innerPadding)
+                .padding(16.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
-                Text(
-                    text = "Appearance",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Appearance",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Dark Mode")
+                        Switch(
+                            checked = darkMode,
+                            onCheckedChange = { darkMode = it }
+                        )
+                    }
+                }
             }
 
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Palette,
-                    title = "Theme",
-                    subtitle = "Light Mode",
-                    onClick = { }
-                )
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Storage & Backup",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Auto Backup")
+                        Switch(
+                            checked = autoBackup,
+                            onCheckedChange = { autoBackup = it }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Save in high quality")
+                        Switch(
+                            checked = highQualitySave,
+                            onCheckedChange = { highQualitySave = it }
+                        )
+                    }
+                }
             }
 
-            item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Image Editing",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Clear editing cache")
+                            Text(
+                                "Free up space by removing temporary files",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        TextButton(onClick = { /* TODO: Implement cache cleaning */ }) {
+                            Text("CLEAR")
+                        }
+                    }
+                }
             }
 
-            item {
-                Text(
-                    text = "About",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp)
+                    )
 
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Info,
-                    title = "App Version",
-                    subtitle = "1.0.0",
-                    onClick = { }
-                )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Photo Management App",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text(
+                        text = "Version 1.0.0",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+
+                    TextButton(onClick = {}) {
+                        Text("CHECK FOR UPDATES")
+                    }
+                }
             }
         }
-    }
-}
-
-@Composable
-fun SettingsItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier
-                .size(24.dp)
-                .align(Alignment.CenterVertically),
-            tint = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-        )
     }
 }

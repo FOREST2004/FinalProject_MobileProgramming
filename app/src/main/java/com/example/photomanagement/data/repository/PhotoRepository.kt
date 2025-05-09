@@ -64,4 +64,35 @@ class PhotoRepository(private val context: Context) {
     private fun updateFavorites() {
         _favoritePhotos.value = _photos.value.filter { it.isFavorite }
     }
+
+    fun saveEditedPhoto(photoId: String, newUri: String, operations: List<EditOperation>): String {
+        // Tìm ảnh cũ
+        val originalPhoto = _photos.value.find { it.id == photoId }
+
+        // Nếu không tìm thấy ảnh, trả về URI rỗng
+        if (originalPhoto == null) return ""
+
+        // Xóa ảnh cũ
+        _photos.value = _photos.value.filter { it.id != photoId }
+
+        // Tạo ảnh mới với URI mới và thông tin từ ảnh cũ
+        val editedPhoto = Photo(
+            id = UUID.randomUUID().toString(),
+            uri = newUri,
+            title = originalPhoto.title,
+            description = originalPhoto.description,
+            dateAdded = Date(),
+            isFavorite = originalPhoto.isFavorite,
+            tags = originalPhoto.tags
+        )
+
+        // Thêm ảnh mới vào danh sách
+        _photos.value = _photos.value + editedPhoto
+
+        // Cập nhật danh sách ảnh yêu thích
+        updateFavorites()
+
+        // Trả về ID của ảnh mới
+        return editedPhoto.id
+    }
 }

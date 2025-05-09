@@ -59,6 +59,19 @@ class PhotoViewModel(private val repository: PhotoRepository) : ViewModel() {
     fun getPhotosByIds(photoIds: List<String>): List<Photo> {
         return photos.value.filter { photoIds.contains(it.id) }
     }
+
+    fun saveEditedPhoto(photo: Photo, newUri: String, operations: List<EditOperation>): String {
+        var newPhotoId = ""
+        viewModelScope.launch {
+            // Lưu ảnh đã chỉnh sửa
+            newPhotoId = repository.saveEditedPhoto(photo.id, newUri, operations)
+        }
+        return newPhotoId
+    }
+
+    fun getPhotoById(photoId: String): Photo? {
+        return photos.value.find { it.id == photoId }
+    }
 }
 
 class PhotoViewModelFactory(private val repository: PhotoRepository) : ViewModelProvider.Factory {

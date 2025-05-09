@@ -8,10 +8,7 @@ import com.example.photomanagement.data.model.Album
 import com.example.photomanagement.data.model.Photo
 import com.example.photomanagement.ui.viewmodel.AlbumViewModel
 import com.example.photomanagement.ui.viewmodel.PhotoViewModel
-import com.example.photomanagement.ui.screen.GalleryScreen
-import com.example.photomanagement.ui.screen.AlbumScreen
-import com.example.photomanagement.ui.screen.SettingsScreen
-import com.example.photomanagement.ui.screen.AlbumDetailScreen
+import com.example.photomanagement.ui.screen.*
 import com.example.photomanagement.ui.components.AddPhotoDialog
 import com.example.photomanagement.ui.components.CreateAlbumDialog
 import com.example.photomanagement.ui.components.PhotoPickerDialog
@@ -30,6 +27,8 @@ fun PhotoManagementApp(
     var showCreateAlbumDialog by remember { mutableStateOf(false) }
     var selectedAlbum by remember { mutableStateOf<Album?>(null) }
     var showPhotoPickerDialog by remember { mutableStateOf(false) }
+    var selectedPhoto by remember { mutableStateOf<Photo?>(null) }
+    var isEditingPhoto by remember { mutableStateOf(false) }
 
     // Counter để buộc refresh UI khi có thay đổi
     var refreshCounter by remember { mutableStateOf(0) }
@@ -70,7 +69,7 @@ fun PhotoManagementApp(
 
     Scaffold(
         bottomBar = {
-            if (selectedAlbum == null) {
+            if (selectedAlbum == null && selectedPhoto == null) {
                 NavigationBar {
                     bottomNavigationItems.forEachIndexed { index, item ->
                         NavigationBarItem(
@@ -84,13 +83,60 @@ fun PhotoManagementApp(
             }
         }
     ) { innerPadding ->
-        if (selectedAlbum != null) {
+        // Photo detail screen
+        if (selectedPhoto != null && !isEditingPhoto) {
+            PhotoDetailScreen(
+                photo = selectedPhoto!!,
+                onBackClick = { selectedPhoto = null },
+                onEditClick = { photo ->
+                    isEditingPhoto = true
+                },
+                onDeleteClick = { photo ->
+                    photoViewModel.deletePhoto(photo.id)
+                    selectedPhoto = null
+                },
+                onToggleFavorite = { photo ->
+                    photoViewModel.toggleFavorite(photo.id)
+                    // Cập nhật lại đối tượng Photo hiện tại
+                    val updatedPhoto = photoViewModel.getPhotoById(photo.id)
+                    if (updatedPhoto != null) {
+                        selectedPhoto = updatedPhoto
+                    }
+                },
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+        // Photo edit screen
+        else if (selectedPhoto != null && isEditingPhoto) {
+            PhotoEditScreen(
+                photo = selectedPhoto!!,
+                onSaveEdit = { photo, newUri, operations ->
+                    // Lưu ảnh đã chỉnh sửa
+                    val newPhotoId = photoViewModel.saveEditedPhoto(photo, newUri, operations)
+                    if (newPhotoId.isNotEmpty()) {
+                        // Cập nhật selectedPhoto để hiển thị ảnh mới
+                        val newPhoto = photoViewModel.getPhotoById(newPhotoId)
+                        if (newPhoto != null) {
+                            selectedPhoto = newPhoto
+                        }
+                    }
+                    isEditingPhoto = false
+                },
+                onCancel = {
+                    isEditingPhoto = false
+                },
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+        else if (selectedAlbum != null) {
             AlbumDetailScreen(
                 album = selectedAlbum!!,
                 albumPhotos = currentAlbumPhotos,
                 onBackClick = { selectedAlbum = null },
                 onAddPhotoClick = { showPhotoPickerDialog = true },
-                onPhotoClick = { /* TODO: Implement */ },
+                onPhotoClick = { photo ->
+                    selectedPhoto = photo
+                },
                 onFavoriteToggle = { photo -> photoViewModel.toggleFavorite(photo.id) },
                 onRemovePhoto = { photo ->
                     // Xóa ảnh khỏi album
@@ -119,7 +165,9 @@ fun PhotoManagementApp(
                     photos = photos,
                     favoritePhotos = favoritePhotos,
                     onAddPhotoClick = { showAddPhotoDialog = true },
-                    onPhotoClick = { /* TODO: Implement */ },
+                    onPhotoClick = { photo ->
+                        selectedPhoto = photo
+                    },
                     onFavoriteToggle = { photo -> photoViewModel.toggleFavorite(photo.id) },
                     onSearch = { query -> photoViewModel.searchPhotos(query) },
                     modifier = Modifier.padding(innerPadding)
