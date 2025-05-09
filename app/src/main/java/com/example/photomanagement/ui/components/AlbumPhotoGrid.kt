@@ -1,0 +1,32 @@
+package com.example.photomanagement.ui.components
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.example.photomanagement.data.model.Photo
+
+@Composable
+fun AlbumPhotoGrid(
+    photos: List<Photo>,
+    onPhotoClick: (Photo) -> Unit,
+    onRemovePhoto: (Photo) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        contentPadding = PaddingValues(4.dp),
+        modifier = modifier
+    ) {
+        items(photos) { photo ->
+            AlbumPhotoGridItem(
+                photo = photo,
+                onPhotoClick = onPhotoClick,
+                onRemovePhoto = onRemovePhoto
+            )
+        }
+    }
+}
