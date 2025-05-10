@@ -1,5 +1,7 @@
 package com.example.photomanagement.ui.screen
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -36,27 +38,57 @@ fun PhotoDetailScreen(
                 title = { Text(photo.title) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
                     }
                 },
                 actions = {
-                    // Favorite button
+                    // Nút chia sẻ - sử dụng intent chia sẻ hệ thống trực tiếp
+                    IconButton(
+                        onClick = {
+                            // Tạo Intent chia sẻ
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "image/*"
+                                putExtra(Intent.EXTRA_STREAM, Uri.parse(photo.uri))
+
+                                // Thêm tiêu đề và mô tả nếu có
+                                putExtra(Intent.EXTRA_SUBJECT, photo.title)
+                                photo.description?.let { desc ->
+                                    if (desc.isNotEmpty()) {
+                                        putExtra(Intent.EXTRA_TEXT, desc)
+                                    }
+                                }
+
+                                // Cấp quyền đọc tạm thời
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+
+                            // Hiển thị trực tiếp hộp thoại chia sẻ của hệ thống
+                            context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ ảnh"))
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Chia sẻ ảnh"
+                        )
+                    }
+
+                    // Nút yêu thích
                     IconButton(onClick = { onToggleFavorite(photo) }) {
                         Icon(
                             imageVector = if (photo.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (photo.isFavorite) "Remove from favorites" else "Add to favorites",
+                            contentDescription = if (photo.isFavorite) "Bỏ yêu thích" else "Yêu thích",
                             tint = if (photo.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                         )
                     }
 
-                    // Edit button
+                    // Nút chỉnh sửa
                     IconButton(onClick = { onEditClick(photo) }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Photo")
+                        Icon(Icons.Default.Edit, contentDescription = "Chỉnh sửa ảnh")
                     }
 
-                    // Delete button
+                    // Nút xóa
                     IconButton(onClick = { onDeleteClick(photo) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete Photo")
+                        Icon(Icons.Default.Delete, contentDescription = "Xóa ảnh")
                     }
                 }
             )
@@ -67,7 +99,7 @@ fun PhotoDetailScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            // Photo display
+            // Hiển thị ảnh
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -84,7 +116,7 @@ fun PhotoDetailScreen(
                 )
             }
 
-            // Photo info
+            // Thông tin ảnh
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,7 +126,7 @@ fun PhotoDetailScreen(
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    // Title
+                    // Tiêu đề
                     Text(
                         text = photo.title,
                         style = MaterialTheme.typography.headlineSmall
@@ -102,7 +134,7 @@ fun PhotoDetailScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Description
+                    // Mô tả
                     photo.description?.let {
                         if (it.isNotEmpty()) {
                             Text(
@@ -113,7 +145,7 @@ fun PhotoDetailScreen(
                         }
                     }
 
-                    // Date added
+                    // Ngày thêm
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -124,14 +156,14 @@ fun PhotoDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Added: ${dateFormat.format(photo.dateAdded)}",
+                            text = "Thêm vào: ${dateFormat.format(photo.dateAdded)}",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Tags
+                    // Thẻ
                     if (photo.tags.isNotEmpty()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
