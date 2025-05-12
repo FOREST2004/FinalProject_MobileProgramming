@@ -2,19 +2,20 @@ package com.example.photomanagement.data.db
 
 import android.content.Context
 import androidx.room.Database
-import androidx.room.TypeConverters
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.example.photomanagement.data.model.Photo
+import com.example.photomanagement.data.model.Album
 
 /**
  * Database siêu đơn giản
  */
-@Database(entities = [Photo::class], version = 1, exportSchema = false)
-@TypeConverters(Converters::class)  // Thêm dòng này
+@Database(entities = [Photo::class, Album::class], version = 1, exportSchema = false)
+@TypeConverters(StringListConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun photoDao(): PhotoDao
-
+    abstract fun albumDao(): AlbumDao
 
     companion object {
         @Volatile
@@ -25,7 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "photo_database"
+                    "photo_management_database"
                 )
                     .fallbackToDestructiveMigration()
                     .build()

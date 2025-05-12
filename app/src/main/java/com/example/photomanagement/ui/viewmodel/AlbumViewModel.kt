@@ -1,5 +1,6 @@
 package com.example.photomanagement.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -7,34 +8,21 @@ import com.example.photomanagement.data.model.Album
 import com.example.photomanagement.data.repository.AlbumRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 class AlbumViewModel(private val repository: AlbumRepository) : ViewModel() {
 
-    // Album Flow
+    // Flow quan sát danh sách album
     val albums: Flow<List<Album>> = repository.albums
 
     // Tạo album mới
     fun createAlbum(name: String, description: String? = null) {
         viewModelScope.launch {
-            val album = Album(
-                id = UUID.randomUUID().toString(),
-                name = name,
-                description = description,
-                photoIds = emptyList(),
-                coverPhotoId = null,
-                dateCreated = System.currentTimeMillis() // Sử dụng milliseconds thay vì Date
-            )
-
-            // Kiểm tra loại tham số của phương thức createAlbum trong repository
-            // Nếu nó cần một String, chỉ truyền album.id
-            repository.createAlbum(album.id)
-
-            // Hoặc nếu nó cần các tham số riêng lẻ
-            // repository.createAlbum(album.id, album.name, album.description)
-
-            // Hoặc nếu nó cần cả đối tượng Album (cần sửa lại repository)
-            // repository.saveAlbum(album)
+            try {
+                val albumId = repository.createAlbum(name, description)
+                Log.d("AlbumViewModel", "Đã tạo album mới: $name với ID: $albumId")
+            } catch (e: Exception) {
+                Log.e("AlbumViewModel", "Lỗi khi tạo album: ${e.message}")
+            }
         }
     }
 
@@ -64,6 +52,11 @@ class AlbumViewModel(private val repository: AlbumRepository) : ViewModel() {
         viewModelScope.launch {
             repository.setCoverPhoto(albumId, photoId)
         }
+    }
+
+    // Lấy album theo ID
+    suspend fun getAlbumById(albumId: String): Album? {
+        return repository.getAlbumById(albumId)
     }
 }
 

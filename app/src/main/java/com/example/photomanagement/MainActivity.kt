@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         appPreferences = AppPreferences(applicationContext)
 
         // Khởi tạo repositories
-        val albumRepository = AlbumRepository()
+        val albumRepository = AlbumRepository(applicationContext)
         val albumViewModel = ViewModelProvider(
             this,
             AlbumViewModelFactory(albumRepository)
