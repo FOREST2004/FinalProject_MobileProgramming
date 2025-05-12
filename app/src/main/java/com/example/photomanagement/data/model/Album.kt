@@ -5,5 +5,6 @@ data class Album(
     val name: String,
     val description: String? = null,
     val photoIds: List<String> = emptyList(),
-    val coverPhotoId: String? = null
+    val coverPhotoId: String? = null,
+    val dateCreated: Long = System.currentTimeMillis()
 )

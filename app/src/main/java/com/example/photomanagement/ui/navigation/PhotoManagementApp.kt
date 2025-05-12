@@ -37,9 +37,11 @@ fun PhotoManagementApp(
     var currentAlbumPhotos by remember { mutableStateOf<List<Photo>>(emptyList()) }
 
     val scope = rememberCoroutineScope()
-    val photos by photoViewModel.photos.collectAsState()
-    val favoritePhotos by photoViewModel.favoritePhotos.collectAsState()
-    val albums by albumViewModel.albums.collectAsState()
+
+    // Sửa các dòng này để thêm giá trị initial
+    val photos by photoViewModel.photos.collectAsState(initial = emptyList())
+    val favoritePhotos by photoViewModel.favoritePhotos.collectAsState(initial = emptyList())
+    val albums by albumViewModel.albums.collectAsState(initial = emptyList())
 
     // Debug: Kiểm tra khi albums thay đổi
     LaunchedEffect(albums) {
@@ -47,6 +49,11 @@ fun PhotoManagementApp(
         albums.forEach { album ->
             println("Album in UI: ${album.id}, ${album.name}")
         }
+    }
+
+    LaunchedEffect(Unit) {
+        // Xác thực tất cả URI ảnh khi ứng dụng khởi động
+        photoViewModel.validatePhotoUris()
     }
 
     // Debug: Kiểm tra khi refreshCounter thay đổi
@@ -61,7 +68,7 @@ fun PhotoManagementApp(
             val updatedAlbum = albums.find { it.id == selectedAlbum!!.id }
             if (updatedAlbum != null) {
                 // Cập nhật danh sách ảnh dựa trên album mới nhất
-                currentAlbumPhotos = photoViewModel.getPhotosByIds(updatedAlbum.photoIds)
+                currentAlbumPhotos = photoViewModel.getPhotosByIdsAsync(updatedAlbum.photoIds)
                 selectedAlbum = updatedAlbum
             }
         }
@@ -98,9 +105,11 @@ fun PhotoManagementApp(
                 onToggleFavorite = { photo ->
                     photoViewModel.toggleFavorite(photo.id)
                     // Cập nhật lại đối tượng Photo hiện tại
-                    val updatedPhoto = photoViewModel.getPhotoById(photo.id)
-                    if (updatedPhoto != null) {
-                        selectedPhoto = updatedPhoto
+                    scope.launch {
+                        val updatedPhoto = photoViewModel.getPhotoByIdAsync(photo.id)
+                        if (updatedPhoto != null) {
+                            selectedPhoto = updatedPhoto
+                        }
                     }
                 },
                 modifier = Modifier.padding(innerPadding)
@@ -115,9 +124,11 @@ fun PhotoManagementApp(
                     val newPhotoId = photoViewModel.saveEditedPhoto(photo, newUri, operations)
                     if (newPhotoId.isNotEmpty()) {
                         // Cập nhật selectedPhoto để hiển thị ảnh mới
-                        val newPhoto = photoViewModel.getPhotoById(newPhotoId)
-                        if (newPhoto != null) {
-                            selectedPhoto = newPhoto
+                        scope.launch {
+                            val newPhoto = photoViewModel.getPhotoByIdAsync(newPhotoId)
+                            if (newPhoto != null) {
+                                selectedPhoto = newPhoto
+                            }
                         }
                     }
                     isEditingPhoto = false
@@ -169,7 +180,6 @@ fun PhotoManagementApp(
                         selectedPhoto = photo
                     },
                     onFavoriteToggle = { photo -> photoViewModel.toggleFavorite(photo.id) },
-                    onSearch = { query -> photoViewModel.searchPhotos(query) },
                     modifier = Modifier.padding(innerPadding)
                 )
                 1 -> AlbumScreen(
@@ -181,7 +191,9 @@ fun PhotoManagementApp(
                     onAlbumClick = { album ->
                         selectedAlbum = album
                         // Khởi tạo danh sách ảnh khi đầu tiên chọn album
-                        currentAlbumPhotos = photoViewModel.getPhotosByIds(album.photoIds)
+                        scope.launch {
+                            currentAlbumPhotos = photoViewModel.getPhotosByIdsAsync(album.photoIds)
+                        }
                     },
                     onDeleteAlbum = { album ->
                         // Xóa album trong repository
@@ -271,7 +283,7 @@ fun PhotoManagementApp(
 
                         // Cập nhật UI - Không đợi LaunchedEffect
                         val updatedPhotoIds = selectedAlbum!!.photoIds + selectedPhotos.map { it.id }
-                        currentAlbumPhotos = photoViewModel.getPhotosByIds(updatedPhotoIds.distinct())
+                        currentAlbumPhotos = photoViewModel.getPhotosByIdsAsync(updatedPhotoIds.distinct())
 
                         // Buộc recomposition bằng cách tăng counter
                         refreshCounter++

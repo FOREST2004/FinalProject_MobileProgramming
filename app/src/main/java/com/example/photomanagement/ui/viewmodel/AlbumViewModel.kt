@@ -4,78 +4,65 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.photomanagement.data.model.Album
-import com.example.photomanagement.data.model.Photo
 import com.example.photomanagement.data.repository.AlbumRepository
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
-import java.util.*
+import java.util.UUID
 
 class AlbumViewModel(private val repository: AlbumRepository) : ViewModel() {
-    // Đảm bảo lấy StateFlow từ repository
-    val albums: StateFlow<List<Album>> = repository.albums
 
-    init {
-        // In ra log danh sách albums khi khởi tạo ViewModel
-        println("AlbumViewModel initialized with ${albums.value.size} albums")
-        debugAlbums()
-    }
+    // Album Flow
+    val albums: Flow<List<Album>> = repository.albums
 
-    // Debug function - in danh sách album ra log
-    fun debugAlbums() {
-        println("DEBUG ALBUMS: Current album count: ${albums.value.size}")
-        albums.value.forEach { album ->
-            println("Album: ${album.id}, ${album.name}, Photos: ${album.photoIds.size}")
-        }
-    }
-
+    // Tạo album mới
     fun createAlbum(name: String, description: String? = null) {
         viewModelScope.launch {
-            // In thông tin trước khi tạo
-            println("Before creating album - Albums count: ${albums.value.size}")
+            val album = Album(
+                id = UUID.randomUUID().toString(),
+                name = name,
+                description = description,
+                photoIds = emptyList(),
+                coverPhotoId = null,
+                dateCreated = System.currentTimeMillis() // Sử dụng milliseconds thay vì Date
+            )
 
-            // Tạo album mới
-            repository.createAlbum(name, description)
+            // Kiểm tra loại tham số của phương thức createAlbum trong repository
+            // Nếu nó cần một String, chỉ truyền album.id
+            repository.createAlbum(album.id)
 
-            // In thông tin sau khi tạo
-            println("After creating album - Albums count: ${albums.value.size}")
-            println("Created album: $name, Description: $description")
-            debugAlbums()
+            // Hoặc nếu nó cần các tham số riêng lẻ
+            // repository.createAlbum(album.id, album.name, album.description)
+
+            // Hoặc nếu nó cần cả đối tượng Album (cần sửa lại repository)
+            // repository.saveAlbum(album)
         }
     }
 
+    // Xóa album
     fun deleteAlbum(albumId: String) {
         viewModelScope.launch {
             repository.deleteAlbum(albumId)
-            println("Album deleted: $albumId")
         }
     }
 
+    // Thêm ảnh vào album
     fun addPhotoToAlbum(albumId: String, photoId: String) {
         viewModelScope.launch {
             repository.addPhotoToAlbum(albumId, photoId)
         }
     }
 
+    // Xóa ảnh khỏi album
     fun removePhotoFromAlbum(albumId: String, photoId: String) {
         viewModelScope.launch {
             repository.removePhotoFromAlbum(albumId, photoId)
         }
     }
 
+    // Thiết lập ảnh bìa cho album
     fun setCoverPhoto(albumId: String, photoId: String) {
         viewModelScope.launch {
             repository.setCoverPhoto(albumId, photoId)
-        }
-    }
-
-    // Lấy danh sách ảnh theo danh sách ID
-    fun getPhotosByIds(photoIds: List<String>): List<Photo> {
-        // Giả sử có một phương thức để lấy ảnh theo ID
-        // Đây chỉ là triển khai mẫu
-        return photoIds.mapNotNull { id ->
-            // Lấy ảnh từ repository theo ID
-            // repository.getPhotoById(id)
-            Photo(id, "Photo $id", "", null, Date()) // Mẫu để tránh lỗi biên dịch
         }
     }
 }

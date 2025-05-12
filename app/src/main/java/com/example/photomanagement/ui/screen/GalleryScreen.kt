@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.photomanagement.data.model.Photo
 import com.example.photomanagement.ui.components.PhotoGrid
-import com.example.photomanagement.ui.components.SearchBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,7 +18,6 @@ fun GalleryScreen(
     onAddPhotoClick: () -> Unit,
     onPhotoClick: (Photo) -> Unit,
     onFavoriteToggle: (Photo) -> Unit,
-    onSearch: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showOnlyFavorites by remember { mutableStateOf(false) }
@@ -43,7 +41,7 @@ fun GalleryScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            SearchBar(onSearch = onSearch)
+            // Xóa dòng này vì không có onSearch: SearchBar(onSearch = onSearch)
 
             // Nút "Add Photo" luôn hiển thị ở đây
             Button(

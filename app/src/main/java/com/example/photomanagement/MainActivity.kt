@@ -9,8 +9,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.ViewModelProvider  // Thêm import này
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.photomanagement.data.db.AppDatabase
+import com.example.photomanagement.data.preferences.AppPreferences
 import com.example.photomanagement.data.repository.AlbumRepository
 import com.example.photomanagement.data.repository.PhotoRepository
 import com.example.photomanagement.ui.navigation.PhotoManagementApp
@@ -21,39 +23,36 @@ import com.example.photomanagement.ui.viewmodel.PhotoViewModel
 import com.example.photomanagement.ui.viewmodel.PhotoViewModelFactory
 
 class MainActivity : ComponentActivity() {
+    private lateinit var appPreferences: AppPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Thêm code này ở đây, trước setContent
+        // Khởi tạo AppPreferences
+        appPreferences = AppPreferences(applicationContext)
+
+        // Khởi tạo repositories
         val albumRepository = AlbumRepository()
         val albumViewModel = ViewModelProvider(
             this,
             AlbumViewModelFactory(albumRepository)
         ).get(AlbumViewModel::class.java)
 
-        // In ra log số lượng album sau khi khởi tạo
-        println("MainActivity: Initial albums count: ${albumRepository.albums.value.size}")
-
         setContent {
-            PhotoManagementTheme {
+            val isDarkTheme = remember { appPreferences.isDarkMode }
+
+            PhotoManagementTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Initialize repositories
+                    // Khởi tạo repository và viewmodel cho photos
                     val photoRepository = remember { PhotoRepository(applicationContext) }
-                    // Sử dụng albumRepository đã khởi tạo ở trên thay vì tạo mới
-                    // val albumRepository = remember { AlbumRepository() }
-
-                    // Create ViewModels
                     val photoViewModel: PhotoViewModel = viewModel(
-                        factory = PhotoViewModelFactory(photoRepository)
+                        // Cập nhật factory để truyền thêm context
+                        factory = PhotoViewModelFactory(photoRepository, applicationContext)
                     )
-                    // Sử dụng albumViewModel đã khởi tạo ở trên thay vì tạo mới qua viewModel
-                    // val albumViewModel: AlbumViewModel = viewModel(
-                    //    factory = AlbumViewModelFactory(albumRepository)
-                    // )
 
                     PhotoManagementApp(
                         photoViewModel = photoViewModel,
