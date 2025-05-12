@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.photomanagement.data.model.Album
+import com.example.photomanagement.data.model.Photo
 import com.example.photomanagement.data.repository.AlbumRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -30,6 +31,19 @@ class AlbumViewModel(private val repository: AlbumRepository) : ViewModel() {
     fun deleteAlbum(albumId: String) {
         viewModelScope.launch {
             repository.deleteAlbum(albumId)
+        }
+    }
+
+    // Thêm nhiều ảnh vào album cùng lúc - PHƯƠNG THỨC MỚI
+    fun addPhotosToAlbum(albumId: String, photos: List<Photo>) {
+        viewModelScope.launch {
+            try {
+                val photoIds = photos.map { it.id }
+                Log.d("AlbumViewModel", "Thêm ${photos.size} ảnh vào album $albumId: $photoIds")
+                repository.addPhotosToAlbum(albumId, photoIds)
+            } catch (e: Exception) {
+                Log.e("AlbumViewModel", "Lỗi khi thêm nhiều ảnh vào album: ${e.message}", e)
+            }
         }
     }
 

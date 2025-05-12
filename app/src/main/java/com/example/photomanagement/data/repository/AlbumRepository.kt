@@ -64,7 +64,41 @@ class AlbumRepository(private val context: Context) {
         }
     }
 
-    // Thêm ảnh vào album
+    // Thêm nhiều ảnh vào album cùng lúc - PHƯƠNG THỨC MỚI
+    suspend fun addPhotosToAlbum(albumId: String, photoIds: List<String>) {
+        withContext(Dispatchers.IO) {
+            try {
+                // Lấy album hiện tại
+                val album = albumDao.getAlbumById(albumId) ?: return@withContext
+
+                // Log trạng thái trước khi thêm
+                Log.d("AlbumRepository", "Trước khi thêm: Album có ${album.photoIds.size} ảnh")
+
+                // Thêm tất cả photoIds mới vào danh sách hiện tại, loại bỏ trùng lặp
+                val updatedPhotoIds = (album.photoIds + photoIds).distinct()
+
+                // Log trạng thái sau khi tính toán
+                Log.d("AlbumRepository", "Sau khi tính toán: Album sẽ có ${updatedPhotoIds.size} ảnh")
+
+                // Cập nhật ảnh bìa nếu cần
+                val finalAlbum = if (album.coverPhotoId == null && updatedPhotoIds.isNotEmpty()) {
+                    album.copy(photoIds = updatedPhotoIds, coverPhotoId = updatedPhotoIds.first())
+                } else {
+                    album.copy(photoIds = updatedPhotoIds)
+                }
+
+                // Cập nhật album
+                albumDao.updateAlbum(finalAlbum)
+
+                // Log kết quả cuối cùng
+                Log.d("AlbumRepository", "Đã thêm ${photoIds.size} ảnh vào album $albumId, album hiện có ${finalAlbum.photoIds.size} ảnh")
+            } catch (e: Exception) {
+                Log.e("AlbumRepository", "Lỗi khi thêm nhiều ảnh vào album: ${e.message}", e)
+            }
+        }
+    }
+
+    // Thêm ảnh vào album - Vẫn giữ lại nhưng nên dùng phương thức trên thay thế
     suspend fun addPhotoToAlbum(albumId: String, photoId: String) {
         withContext(Dispatchers.IO) {
             try {

@@ -263,30 +263,30 @@ fun PhotoManagementApp(
             )
         }
 
-        // Show Photo Picker Dialog
+        // Xử lý khi người dùng chọn ảnh trong PhotoPickerDialog
         if (showPhotoPickerDialog && selectedAlbum != null) {
             PhotoPickerDialog(
                 availablePhotos = photos,
                 onPhotosSelected = { selectedPhotos ->
                     // Khi người dùng chọn xong ảnh trong dialog
                     scope.launch {
-                        // Thêm ảnh vào album trong repository
-                        selectedPhotos.forEach { photo ->
-                            albumViewModel.addPhotoToAlbum(selectedAlbum!!.id, photo.id)
-                        }
+                        // DEBUG LOG
+                        println("PhotoManagementApp: Đã chọn ${selectedPhotos.size} ảnh: ${selectedPhotos.map { it.id }}")
+
+                        // Sử dụng phương thức mới để thêm nhiều ảnh cùng lúc
+                        albumViewModel.addPhotosToAlbum(selectedAlbum!!.id, selectedPhotos)
 
                         // Đóng dialog
                         showPhotoPickerDialog = false
 
                         // QUAN TRỌNG: Đợi một chút để đảm bảo repository đã cập nhật
-                        delay(100)
+                        delay(200)
 
-                        // Cập nhật UI - Không đợi LaunchedEffect
-                        val updatedPhotoIds = selectedAlbum!!.photoIds + selectedPhotos.map { it.id }
-                        currentAlbumPhotos = photoViewModel.getPhotosByIdsAsync(updatedPhotoIds.distinct())
-
-                        // Buộc recomposition bằng cách tăng counter
+                        // Buộc refresh UI bằng cách tăng counter
                         refreshCounter++
+
+                        // Log cho debug
+                        println("PhotoManagementApp: Đã thêm ảnh vào album và làm mới UI, counter = $refreshCounter")
                     }
                 },
                 onDismiss = { showPhotoPickerDialog = false }
