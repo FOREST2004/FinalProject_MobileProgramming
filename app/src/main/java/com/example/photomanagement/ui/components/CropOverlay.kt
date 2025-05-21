@@ -23,7 +23,9 @@ private const val TAG = "CropOverlay"
 
 @Composable
 fun CropOverlay(
-    onCropChanged: (x: Int, y: Int, width: Int, height: Int) -> Unit,
+    onCropChanged: (x: Int, y: Int, width: Int, height: Int, containerWidth: Int, containerHeight: Int) -> Unit,
+    imageWidth: Int = 0,  // Kích thước thực của ảnh
+    imageHeight: Int = 0, // Kích thước thực của ảnh
     modifier: Modifier = Modifier
 ) {
     // Size of the container
@@ -47,14 +49,16 @@ fun CropOverlay(
                 bottom = y + initialSize
             )
 
-            // Notify initial crop dimensions
+            // Notify initial crop dimensions with container size
             cropRect?.let { rect ->
                 Log.d(TAG, "Initial crop: left=${rect.left}, top=${rect.top}, width=${rect.width}, height=${rect.height}")
                 onCropChanged(
                     rect.left.toInt(),
                     rect.top.toInt(),
                     rect.width.toInt(),
-                    rect.height.toInt()
+                    rect.height.toInt(),
+                    containerSize.width,
+                    containerSize.height
                 )
             }
         }
@@ -69,6 +73,7 @@ fun CropOverlay(
             .onSizeChanged { size ->
                 containerSize = size
                 Log.d(TAG, "Container size changed: $size")
+                Log.d(TAG, "Image size: ${imageWidth}x${imageHeight}")
             }
             .pointerInput(Unit) {
                 detectDragGestures(
@@ -173,12 +178,14 @@ fun CropOverlay(
 
                             cropRect = newRect
 
-                            // Notify updated crop dimensions
+                            // Notify updated crop dimensions with container size
                             onCropChanged(
                                 newRect.left.toInt(),
                                 newRect.top.toInt(),
                                 newRect.width.toInt(),
-                                newRect.height.toInt()
+                                newRect.height.toInt(),
+                                containerSize.width,
+                                containerSize.height
                             )
 
                             Log.d(TAG, "Crop changed: left=${newRect.left}, top=${newRect.top}, width=${newRect.width}, height=${newRect.height}")

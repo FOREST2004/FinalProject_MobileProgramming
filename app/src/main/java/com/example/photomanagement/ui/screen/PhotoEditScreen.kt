@@ -2,6 +2,7 @@ package com.example.photomanagement.ui.screen
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.graphics.RectF
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -30,6 +31,7 @@ import com.example.photomanagement.data.model.Photo
 import com.example.photomanagement.ui.components.CropOverlay
 import kotlinx.coroutines.launch
 import com.example.photomanagement.utils.ImageUtils
+import kotlin.math.min
 
 private const val TAG = "PhotoEditScreen"
 
@@ -59,6 +61,10 @@ fun PhotoEditScreen(
     // Crop related state
     var cropRect by remember { mutableStateOf<EditOperation.Crop?>(null) }
 
+    // Thêm biến để lưu thông tin vùng cắt với container
+    var cropContainerWidth by remember { mutableStateOf(0) }
+    var cropContainerHeight by remember { mutableStateOf(0) }
+
     // Load image on first composition
     LaunchedEffect(photo.uri) {
         val bitmap = ImageUtils.loadBitmapFromUri(context, photo.uri)
@@ -68,10 +74,10 @@ fun PhotoEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Photo") },
+                title = { Text("Chỉnh sửa ảnh") },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
                     }
                 },
                 actions = {
@@ -88,7 +94,7 @@ fun PhotoEditScreen(
                         },
                         enabled = currentBitmap != null
                     ) {
-                        Icon(Icons.Default.Save, contentDescription = "Save")
+                        Icon(Icons.Default.Save, contentDescription = "Lưu")
                     }
                 }
             )
@@ -107,21 +113,21 @@ fun PhotoEditScreen(
                                 cropRect?.let { crop ->
                                     scope.launch {
                                         currentBitmap?.let { bitmap ->
-                                            Log.d(TAG, "Applying crop with container size: ${imageContainerSize.width}x${imageContainerSize.height}")
-                                            Log.d(TAG, "Crop rect: x=${crop.x}, y=${crop.y}, width=${crop.width}, height=${crop.height}")
+                                            Log.d(TAG, "Áp dụng cắt với kích thước container: ${cropContainerWidth}x${cropContainerHeight}")
+                                            Log.d(TAG, "Vùng cắt: x=${crop.x}, y=${crop.y}, width=${crop.width}, height=${crop.height}")
 
-                                            // Sử dụng phương thức cropBitmapSimple với kích thước container
+                                            // Sử dụng phương thức cropBitmapSimple với các thông số đã lưu
                                             val cropped = ImageUtils.cropBitmapSimple(
                                                 bitmap,
                                                 crop.x,
                                                 crop.y,
                                                 crop.width,
                                                 crop.height,
-                                                imageContainerSize.width,
-                                                imageContainerSize.height
+                                                cropContainerWidth,
+                                                cropContainerHeight
                                             )
 
-                                            Log.d(TAG, "Cropped bitmap size: ${cropped.width}x${cropped.height}")
+                                            Log.d(TAG, "Bitmap đã cắt: ${cropped.width}x${cropped.height}")
                                             currentBitmap = cropped
                                             operations = operations + crop
                                             cropRect = null
@@ -133,7 +139,7 @@ fun PhotoEditScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "Apply Crop",
+                                contentDescription = "Áp dụng cắt",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -147,12 +153,12 @@ fun PhotoEditScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Cancel Crop",
+                                contentDescription = "Hủy cắt",
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
                     } else {
-                        // Rotate button
+                        // Nút xoay
                         IconButton(
                             onClick = {
                                 scope.launch {
@@ -164,10 +170,10 @@ fun PhotoEditScreen(
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.Rotate90DegreesCw, contentDescription = "Rotate")
+                            Icon(Icons.Default.Rotate90DegreesCw, contentDescription = "Xoay")
                         }
 
-                        // Flip horizontal button
+                        // Nút lật ngang
                         IconButton(
                             onClick = {
                                 scope.launch {
@@ -179,10 +185,10 @@ fun PhotoEditScreen(
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.FlipToFront, contentDescription = "Flip Horizontal")
+                            Icon(Icons.Default.FlipToFront, contentDescription = "Lật ngang")
                         }
 
-                        // Flip vertical button
+                        // Nút lật dọc
                         IconButton(
                             onClick = {
                                 scope.launch {
@@ -194,10 +200,10 @@ fun PhotoEditScreen(
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.FlipToBack, contentDescription = "Flip Vertical")
+                            Icon(Icons.Default.FlipToBack, contentDescription = "Lật dọc")
                         }
 
-                        // Crop button
+                        // Nút cắt
                         IconButton(
                             onClick = {
                                 currentEditMode = EditMode.CROP
@@ -205,7 +211,7 @@ fun PhotoEditScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Crop,
-                                contentDescription = "Crop",
+                                contentDescription = "Cắt",
                                 tint = if (currentEditMode == EditMode.CROP)
                                     MaterialTheme.colorScheme.primary
                                 else
@@ -225,7 +231,7 @@ fun PhotoEditScreen(
             contentAlignment = Alignment.Center
         ) {
             currentBitmap?.let { bitmap ->
-                // Display the current edited image
+                // Hiển thị ảnh đang được chỉnh sửa
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -240,24 +246,31 @@ fun PhotoEditScreen(
                 ) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Edited Photo",
+                        contentDescription = "Ảnh đang chỉnh sửa",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit // ContentScale.Fit đảm bảo toàn bộ ảnh được hiển thị
                     )
                 }
 
-                // Show crop overlay if in crop mode
+                // Hiển thị overlay cắt nếu đang ở chế độ cắt
                 if (currentEditMode == EditMode.CROP) {
                     CropOverlay(
                         modifier = Modifier.fillMaxSize(),
-                        onCropChanged = { x, y, width, height ->
-                            Log.d(TAG, "Crop changed: x=$x, y=$y, width=$width, height=$height")
+                        imageWidth = bitmap.width,
+                        imageHeight = bitmap.height,
+                        onCropChanged = { x, y, width, height, containerWidth, containerHeight ->
+                            Log.d(TAG, "Vùng cắt thay đổi: x=$x, y=$y, width=$width, height=$height")
+                            Log.d(TAG, "Container: ${containerWidth}x${containerHeight}")
+
+                            // Lưu thông tin cắt
                             cropRect = EditOperation.Crop(x, y, width, height)
+                            cropContainerWidth = containerWidth
+                            cropContainerHeight = containerHeight
                         }
                     )
                 }
             } ?: run {
-                // Show original image if bitmap not loaded yet
+                // Hiển thị ảnh gốc nếu bitmap chưa được tải
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

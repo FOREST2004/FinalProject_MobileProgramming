@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -15,6 +16,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import kotlin.math.min
 
 object ImageUtils {
     private const val TAG = "ImageUtils"
@@ -158,20 +160,8 @@ object ImageUtils {
     }
 
     /**
-     * Simple crop function with absolute dimensions
-     */
-    fun cropBitmapSimple(bitmap: Bitmap, x: Int, y: Int, width: Int, height: Int): Bitmap {
-        // Đảm bảo tọa độ nằm trong bitmap
-        val safeX = x.coerceIn(0, bitmap.width - 1)
-        val safeY = y.coerceIn(0, bitmap.height - 1)
-        val safeWidth = width.coerceIn(1, bitmap.width - safeX)
-        val safeHeight = height.coerceIn(1, bitmap.height - safeY)
-
-        return Bitmap.createBitmap(bitmap, safeX, safeY, safeWidth, safeHeight)
-    }
-
-    /**
-     * Mở rộng phương thức cropBitmapSimple để hỗ trợ tỷ lệ
+     * Phương thức cải tiến để cắt ảnh chính xác hơn
+     * Tính toán vùng cắt dựa trên kích thước thực tế của bitmap và container
      */
     fun cropBitmapSimple(
         bitmap: Bitmap,
@@ -182,17 +172,110 @@ object ImageUtils {
         containerWidth: Int,
         containerHeight: Int
     ): Bitmap {
-        // Tính toán tỷ lệ giữa kích thước bitmap thực tế và kích thước container
-        val scaleX = bitmap.width.toFloat() / containerWidth.toFloat()
-        val scaleY = bitmap.height.toFloat() / containerHeight.toFloat()
+        Log.d(TAG, "Bitmap thực: ${bitmap.width}x${bitmap.height}, Container: ${containerWidth}x${containerHeight}")
+        Log.d(TAG, "Vùng cắt gốc: x=$x, y=$y, width=$width, height=$height")
 
-        // Chuyển đổi các tọa độ từ container sang bitmap thực tế
-        val actualX = (x * scaleX).toInt()
-        val actualY = (y * scaleY).toInt()
-        val actualWidth = (width * scaleX).toInt().coerceAtMost(bitmap.width - actualX)
-        val actualHeight = (height * scaleY).toInt().coerceAtMost(bitmap.height - actualY)
+        // Tính toán tỷ lệ fit thực tế (khi ảnh được scale để vừa container)
+        val actualScale = minOf(
+            containerWidth.toFloat() / bitmap.width.toFloat(),
+            containerHeight.toFloat() / bitmap.height.toFloat()
+        )
 
-        // Đảm bảo tọa độ nằm trong bitmap
+        // Tính kích thước ảnh sau khi scale
+        val scaledImageWidth = bitmap.width * actualScale
+        val scaledImageHeight = bitmap.height * actualScale
+
+        // Tính offset nếu ảnh được căn giữa trong container
+        val offsetX = (containerWidth - scaledImageWidth) / 2f
+        val offsetY = (containerHeight - scaledImageHeight) / 2f
+
+        // Chuyển đổi tọa độ từ container sang tọa độ bitmap gốc
+        val actualX = ((x - offsetX) / actualScale).toInt()
+        val actualY = ((y - offsetY) / actualScale).toInt()
+        val actualWidth = (width / actualScale).toInt()
+        val actualHeight = (height / actualScale).toInt()
+
+        Log.d(TAG, "Offset: x=$offsetX, y=$offsetY, Scale: $actualScale")
+        Log.d(TAG, "Ảnh scaled: ${scaledImageWidth}x${scaledImageHeight}")
+        Log.d(TAG, "Vùng cắt thực: x=$actualX, y=$actualY, width=$actualWidth, height=$actualHeight")
+
+        // Đảm bảo vùng cắt nằm trong bitmap
+        val safeX = actualX.coerceIn(0, bitmap.width - 1)
+        val safeY = actualY.coerceIn(0, bitmap.height - 1)
+        val safeWidth = actualWidth.coerceIn(1, bitmap.width - safeX)
+        val safeHeight = actualHeight.coerceIn(1, bitmap.height - safeY)
+
+        // Log thông tin vùng cắt cuối cùng
+        Log.d(TAG, "Vùng cắt áp dụng: x=$safeX, y=$safeY, width=$safeWidth, height=$safeHeight")
+
+        return Bitmap.createBitmap(bitmap, safeX, safeY, safeWidth, safeHeight)
+    }
+
+    /**
+     * Tính toán vùng hiển thị thực tế của ảnh trong container
+     */
+    fun calculateActualImageBounds(
+        containerWidth: Int,
+        containerHeight: Int,
+        bitmapWidth: Int,
+        bitmapHeight: Int
+    ): RectF {
+        // Tính tỷ lệ để ảnh vừa với container
+        val scale = min(
+            containerWidth.toFloat() / bitmapWidth.toFloat(),
+            containerHeight.toFloat() / bitmapHeight.toFloat()
+        )
+
+        // Kích thước ảnh sau khi scale
+        val scaledWidth = bitmapWidth * scale
+        val scaledHeight = bitmapHeight * scale
+
+        // Vị trí của ảnh trong container (căn giữa)
+        val left = (containerWidth - scaledWidth) / 2f
+        val top = (containerHeight - scaledHeight) / 2f
+
+        return RectF(left, top, left + scaledWidth, top + scaledHeight)
+    }
+
+    /**
+     * Phương thức thay thế để cắt ảnh trong trường hợp cách tiếp cận thông thường không hoạt động
+     * Sử dụng RectF đã tính toán
+     */
+    fun cropBitmapFromActualBounds(
+        bitmap: Bitmap,
+        cropX: Int,
+        cropY: Int,
+        cropWidth: Int,
+        cropHeight: Int,
+        containerWidth: Int,
+        containerHeight: Int
+    ): Bitmap {
+        // Tính toán vùng hiển thị thực tế của ảnh trong container
+        val imageBounds = calculateActualImageBounds(
+            containerWidth, containerHeight, bitmap.width, bitmap.height
+        )
+
+        Log.d(TAG, "Image bounds: left=${imageBounds.left}, top=${imageBounds.top}, " +
+                "right=${imageBounds.right}, bottom=${imageBounds.bottom}")
+
+        // Kiểm tra xem vùng chọn có nằm trong vùng hiển thị thực tế không
+        if (cropX < imageBounds.left || cropY < imageBounds.top ||
+            cropX + cropWidth > imageBounds.right || cropY + cropHeight > imageBounds.bottom) {
+            Log.w(TAG, "Vùng cắt nằm ngoài vùng hiển thị của ảnh, điều chỉnh lại")
+        }
+
+        // Chuyển từ tọa độ container sang tọa độ bitmap
+        val scaleX = bitmap.width / imageBounds.width()
+        val scaleY = bitmap.height / imageBounds.height()
+
+        val actualX = ((cropX - imageBounds.left) * scaleX).toInt()
+        val actualY = ((cropY - imageBounds.top) * scaleY).toInt()
+        val actualWidth = (cropWidth * scaleX).toInt()
+        val actualHeight = (cropHeight * scaleY).toInt()
+
+        Log.d(TAG, "Vùng cắt thực: x=$actualX, y=$actualY, w=$actualWidth, h=$actualHeight")
+
+        // Đảm bảo vùng cắt nằm trong bitmap
         val safeX = actualX.coerceIn(0, bitmap.width - 1)
         val safeY = actualY.coerceIn(0, bitmap.height - 1)
         val safeWidth = actualWidth.coerceIn(1, bitmap.width - safeX)
