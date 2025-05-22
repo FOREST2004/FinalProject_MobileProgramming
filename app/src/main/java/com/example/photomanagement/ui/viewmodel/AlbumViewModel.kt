@@ -8,6 +8,7 @@ import com.example.photomanagement.data.model.Album
 import com.example.photomanagement.data.model.Photo
 import com.example.photomanagement.data.repository.AlbumRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class AlbumViewModel(private val repository: AlbumRepository) : ViewModel() {
@@ -71,6 +72,39 @@ class AlbumViewModel(private val repository: AlbumRepository) : ViewModel() {
     // Lấy album theo ID
     suspend fun getAlbumById(albumId: String): Album? {
         return repository.getAlbumById(albumId)
+    }
+
+    // Thêm phương thức xóa tất cả album - ĐÃ SỬA
+    fun deleteAllAlbums() {
+        viewModelScope.launch {
+            try {
+                // Lấy danh sách album hiện tại từ Flow
+                val allAlbums = albums.first() // Sử dụng first() để lấy giá trị hiện tại của Flow
+
+                Log.d("AlbumViewModel", "Bắt đầu xóa ${allAlbums.size} album")
+
+                // Xóa từng album
+                for (album in allAlbums) {
+                    repository.deleteAlbum(album.id)
+                    Log.d("AlbumViewModel", "Đã xóa album: ${album.id} - ${album.name}")
+                }
+
+                Log.d("AlbumViewModel", "Đã hoàn tất xóa tất cả ${allAlbums.size} album")
+            } catch (e: Exception) {
+                Log.e("AlbumViewModel", "Lỗi khi xóa tất cả album: ${e.message}", e)
+            }
+        }
+    }
+
+    fun clearAllPhotosFromAllAlbums() {
+        viewModelScope.launch {
+            try {
+                repository.clearAllPhotosFromAllAlbums()
+                Log.d("AlbumViewModel", "Đã xóa tất cả ảnh khỏi các album")
+            } catch (e: Exception) {
+                Log.e("AlbumViewModel", "Lỗi khi xóa ảnh khỏi album: ${e.message}")
+            }
+        }
     }
 }
 

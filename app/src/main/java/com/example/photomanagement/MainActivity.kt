@@ -4,10 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -21,6 +22,7 @@ import com.example.photomanagement.ui.viewmodel.AlbumViewModel
 import com.example.photomanagement.ui.viewmodel.AlbumViewModelFactory
 import com.example.photomanagement.ui.viewmodel.PhotoViewModel
 import com.example.photomanagement.ui.viewmodel.PhotoViewModelFactory
+import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
     private lateinit var appPreferences: AppPreferences
@@ -40,7 +42,11 @@ class MainActivity : ComponentActivity() {
         ).get(AlbumViewModel::class.java)
 
         setContent {
-            val isDarkTheme = remember { appPreferences.isDarkMode }
+            // Theo dõi thay đổi dark mode từ StateFlow
+            val isDarkTheme by appPreferences.darkModeFlow.collectAsState(initial = appPreferences.isDarkMode)
+
+            // Tạo tham chiếu đến appPreferences để pass xuống các components
+            val preferencesRef = remember { appPreferences }
 
             PhotoManagementTheme(darkTheme = isDarkTheme) {
                 Surface(
@@ -56,7 +62,8 @@ class MainActivity : ComponentActivity() {
 
                     PhotoManagementApp(
                         photoViewModel = photoViewModel,
-                        albumViewModel = albumViewModel
+                        albumViewModel = albumViewModel,
+                        appPreferences = preferencesRef // Truyền appPreferences xuống
                     )
                 }
             }

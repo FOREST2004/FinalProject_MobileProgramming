@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.example.photomanagement.data.model.Album
 import com.example.photomanagement.data.model.Photo
+import com.example.photomanagement.data.preferences.AppPreferences
 import com.example.photomanagement.ui.viewmodel.AlbumViewModel
 import com.example.photomanagement.ui.viewmodel.PhotoViewModel
 import com.example.photomanagement.ui.screen.*
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 fun PhotoManagementApp(
     photoViewModel: PhotoViewModel,
     albumViewModel: AlbumViewModel,
+    appPreferences: AppPreferences, // Thêm tham số appPreferences
     modifier: Modifier = Modifier
 ) {
     var selectedItem by remember { mutableStateOf(0) }
@@ -104,10 +106,10 @@ fun PhotoManagementApp(
                 },
                 onToggleFavorite = { photo ->
                     photoViewModel.toggleFavorite(photo.id)
-                    // Cập nhật lại đối tượng Photo hiện tại
+                    // Cập nhật lại đối tượng Photo hiện tại nếu đang xem detail
                     scope.launch {
                         val updatedPhoto = photoViewModel.getPhotoByIdAsync(photo.id)
-                        if (updatedPhoto != null) {
+                        if (updatedPhoto != null && selectedPhoto?.id == photo.id) {
                             selectedPhoto = updatedPhoto
                         }
                     }
@@ -115,23 +117,28 @@ fun PhotoManagementApp(
                 modifier = Modifier.padding(innerPadding)
             )
         }
-        // Photo edit screen
+// Photo edit screen
         else if (selectedPhoto != null && isEditingPhoto) {
             PhotoEditScreen(
                 photo = selectedPhoto!!,
                 onSaveEdit = { photo, newUri, operations ->
                     // Lưu ảnh đã chỉnh sửa
                     val newPhotoId = photoViewModel.saveEditedPhoto(photo, newUri, operations)
-                    if (newPhotoId.isNotEmpty()) {
-                        // Cập nhật selectedPhoto để hiển thị ảnh mới
-                        scope.launch {
-                            val newPhoto = photoViewModel.getPhotoByIdAsync(newPhotoId)
-                            if (newPhoto != null) {
-                                selectedPhoto = newPhoto
-                            }
+
+                    scope.launch {
+                        // Đợi một chút để đảm bảo file đã được lưu
+                        delay(500)
+
+                        // Lấy photo đã cập nhật từ database
+                        val updatedPhoto = photoViewModel.getPhotoByIdAsync(photo.id)
+                        if (updatedPhoto != null) {
+                            selectedPhoto = updatedPhoto
+
                         }
+
+                        // Thoát khỏi chế độ chỉnh sửa
+                        isEditingPhoto = false
                     }
-                    isEditingPhoto = false
                 },
                 onCancel = {
                     isEditingPhoto = false
@@ -207,6 +214,9 @@ fun PhotoManagementApp(
                     modifier = Modifier.padding(innerPadding)
                 )
                 2 -> SettingsScreen(
+                    appPreferences = appPreferences,
+                    photoViewModel = photoViewModel,  // Thêm photoViewModel
+                    albumViewModel = albumViewModel,  // Thêm albumViewModel
                     modifier = Modifier.padding(innerPadding)
                 )
             }

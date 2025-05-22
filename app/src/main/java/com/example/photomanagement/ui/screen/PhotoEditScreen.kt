@@ -52,6 +52,12 @@ fun PhotoEditScreen(
     // Current bitmap state that will be modified during edits
     var currentBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
+    // THÊM: Bitmap gốc để hiển thị khi không có chỉnh sửa
+    var originalBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    // THÊM: Flag để biết có đang trong quá trình lưu không
+    var isSaving by remember { mutableStateOf(false) }
+
     // List of operations applied to the image
     var operations by remember { mutableStateOf<List<EditOperation>>(emptyList()) }
 
@@ -69,6 +75,8 @@ fun PhotoEditScreen(
     LaunchedEffect(photo.uri) {
         val bitmap = ImageUtils.loadBitmapFromUri(context, photo.uri)
         currentBitmap = bitmap
+        originalBitmap = bitmap // Lưu bitmap gốc
+        isSaving = false // Reset saving state
     }
 
     Scaffold(
@@ -85,6 +93,7 @@ fun PhotoEditScreen(
                         onClick = {
                             currentBitmap?.let { bitmap ->
                                 scope.launch {
+                                    isSaving = true // Bắt đầu quá trình lưu
                                     val newUri = ImageUtils.saveBitmapToUri(context, bitmap)
                                     newUri?.let {
                                         onSaveEdit(photo, it.toString(), operations)
@@ -92,9 +101,16 @@ fun PhotoEditScreen(
                                 }
                             }
                         },
-                        enabled = currentBitmap != null
+                        enabled = currentBitmap != null && !isSaving
                     ) {
-                        Icon(Icons.Default.Save, contentDescription = "Lưu")
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Save, contentDescription = "Lưu")
+                        }
                     }
                 }
             )
@@ -231,11 +247,11 @@ fun PhotoEditScreen(
             contentAlignment = Alignment.Center
         ) {
             currentBitmap?.let { bitmap ->
-                // Hiển thị ảnh đang được chỉnh sửa
+                // Display the current edited image
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(vertical = 4.dp) // Thêm padding nhỏ để tránh trường hợp ảnh bị cắt sát cạnh
+                        .padding(vertical = 4.dp)
                         .onSizeChanged { size ->
                             if (size.width > 0 && size.height > 0) {
                                 imageContainerSize = size
@@ -248,11 +264,11 @@ fun PhotoEditScreen(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = "Ảnh đang chỉnh sửa",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit // ContentScale.Fit đảm bảo toàn bộ ảnh được hiển thị
+                        contentScale = ContentScale.Fit
                     )
                 }
 
-                // Hiển thị overlay cắt nếu đang ở chế độ cắt
+                // Show crop overlay if in crop mode
                 if (currentEditMode == EditMode.CROP) {
                     CropOverlay(
                         modifier = Modifier.fillMaxSize(),
@@ -270,7 +286,7 @@ fun PhotoEditScreen(
                     )
                 }
             } ?: run {
-                // Hiển thị ảnh gốc nếu bitmap chưa được tải
+                // Show loading while bitmap is being loaded
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -283,19 +299,7 @@ fun PhotoEditScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(photo.uri)
-                            .size(Size.ORIGINAL)
-                            .build(),
-                        contentDescription = photo.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    CircularProgressIndicator()
                 }
             }
         }

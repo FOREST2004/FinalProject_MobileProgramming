@@ -35,6 +35,8 @@ class PhotoViewModel(
     val photos: Flow<List<Photo>> = repository.photos
     val favoritePhotos: Flow<List<Photo>> = repository.favoritePhotos
 
+    private var albumViewModel: AlbumViewModel? = null
+
     // Thêm ảnh mới
     fun addPhoto(uri: String, title: String, description: String? = null) {
         viewModelScope.launch {
@@ -96,10 +98,15 @@ class PhotoViewModel(
         }
     }
 
-    // Đánh dấu ảnh yêu thích
+
     fun toggleFavorite(photoId: String) {
         viewModelScope.launch {
-            repository.toggleFavorite(photoId)
+            try {
+                repository.toggleFavorite(photoId)
+                Log.d("PhotoViewModel", "Toggled favorite for photo: $photoId")
+            } catch (e: Exception) {
+                Log.e("PhotoViewModel", "Error toggling favorite: ${e.message}")
+            }
         }
     }
 
@@ -170,6 +177,35 @@ class PhotoViewModel(
     suspend fun getPhotosByIdsAsync(photoIds: List<String>): List<Photo> {
         return withContext(Dispatchers.IO) {
             repository.getPhotosByIds(photoIds)
+        }
+    }
+
+
+    fun deleteAllPhotos() {
+        viewModelScope.launch {
+            try {
+                val allPhotos = repository.getAllPhotosSync()
+
+                // Xóa từng ảnh
+                for (photo in allPhotos) {
+                    repository.deletePhoto(photo.id)
+                    photo.uri.let { uri ->
+                        if (uri.startsWith("file://")) {
+                            val path = Uri.parse(uri).path
+                            if (path != null) {
+                                ImageUtils.deleteImageFromInternalStorage(path)
+                            }
+                        }
+                    }
+                }
+
+                // Sau khi xóa xong ảnh, cập nhật album
+                albumViewModel?.clearAllPhotosFromAllAlbums()
+
+                Log.d("PhotoViewModel", "Đã xóa tất cả ${allPhotos.size} ảnh")
+            } catch (e: Exception) {
+                Log.e("PhotoViewModel", "Lỗi khi xóa tất cả ảnh: ${e.message}")
+            }
         }
     }
 }

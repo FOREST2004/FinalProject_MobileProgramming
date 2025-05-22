@@ -8,7 +8,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -27,6 +27,16 @@ fun PhotoGridItem(
 ) {
     val context = LocalContext.current
 
+    // Sửa lại cách sử dụng remember - Sử dụng key để reset state khi photo thay đổi
+    var isFavorite by remember(photo.id, photo.isFavorite) {
+        mutableStateOf(photo.isFavorite)
+    }
+
+    // Đồng bộ state khi photo.isFavorite thay đổi từ bên ngoài
+    LaunchedEffect(photo.isFavorite) {
+        isFavorite = photo.isFavorite
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -38,8 +48,7 @@ fun PhotoGridItem(
             AsyncImage(
                 model = photo.uri,
                 contentDescription = photo.title,
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             )
 
             // Row để chứa các nút thao tác (yêu thích và chia sẻ)
@@ -71,13 +80,18 @@ fun PhotoGridItem(
 
                 // Nút yêu thích
                 IconButton(
-                    onClick = onFavoriteClick,
+                    onClick = {
+                        // Cập nhật state local ngay lập tức để UI responsive
+                        isFavorite = !isFavorite
+                        // Gọi callback để cập nhật database
+                        onFavoriteClick()
+                    },
                     modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
-                        imageVector = if (photo.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = if (photo.isFavorite) "Bỏ yêu thích" else "Yêu thích",
-                        tint = if (photo.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = if (isFavorite) "Bỏ yêu thích" else "Yêu thích",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
                 }
             }

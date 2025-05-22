@@ -26,4 +26,7 @@ interface AlbumDao {
 
     @Query("SELECT * FROM albums WHERE id IN (:albumIds)")
     suspend fun getAlbumsByIds(albumIds: List<String>): List<Album>
+
+    @Query("SELECT * FROM albums")
+    suspend fun getAllAlbumsSync(): List<Album>
 }

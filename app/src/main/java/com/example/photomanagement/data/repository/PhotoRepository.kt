@@ -52,15 +52,15 @@ class PhotoRepository(private val context: Context) {
         }
     }
 
-    // Đánh dấu ảnh yêu thích
+    // Trong PhotoRepository.kt
     suspend fun toggleFavorite(photoId: String) {
         withContext(Dispatchers.IO) {
             try {
-                val photos = photoDao.getPhotosByIds(listOf(photoId))
-                if (photos.isNotEmpty()) {
-                    val photo = photos[0]
+                val photo = photoDao.getPhotoById(photoId)
+                if (photo != null) {
                     val updatedPhoto = photo.copy(isFavorite = !photo.isFavorite)
                     photoDao.updatePhoto(updatedPhoto)
+                    Log.d("PhotoRepository", "Updated favorite status for photo $photoId to ${updatedPhoto.isFavorite}")
                 }
             } catch (e: Exception) {
                 Log.e("PhotoRepository", "Error toggling favorite: ${e.message}")

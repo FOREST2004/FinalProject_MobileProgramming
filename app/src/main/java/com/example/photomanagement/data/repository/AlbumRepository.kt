@@ -171,4 +171,28 @@ class AlbumRepository(private val context: Context) {
             }
         }
     }
+
+    // Thêm vào AlbumRepository.kt
+    suspend fun clearAllPhotosFromAllAlbums() {
+        withContext(Dispatchers.IO) {
+            try {
+                // Lấy tất cả album
+                val allAlbums = albumDao.getAllAlbumsSync() // Cần thêm phương thức này vào DAO
+
+                // Cập nhật từng album để xóa tất cả photoIds
+                for (album in allAlbums) {
+                    val updatedAlbum = album.copy(
+                        photoIds = emptyList(),
+                        coverPhotoId = null
+                    )
+                    albumDao.updateAlbum(updatedAlbum)
+                }
+
+                Log.d("AlbumRepository", "Đã xóa tất cả ảnh khỏi ${allAlbums.size} album")
+            } catch (e: Exception) {
+                Log.e("AlbumRepository", "Lỗi khi xóa ảnh khỏi album: ${e.message}")
+            }
+        }
+    }
+
 }

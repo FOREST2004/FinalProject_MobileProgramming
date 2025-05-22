@@ -33,8 +33,16 @@ fun PhotoDetailScreen(
     val context = LocalContext.current
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()) }
 
+    // Thêm state để track favorite status locally
+    var isFavorite by remember(photo.id) { mutableStateOf(photo.isFavorite) }
+
     // Kiểm tra URI hợp lệ
     var isUriValid by remember { mutableStateOf(true) }
+
+    // Cập nhật isFavorite khi photo thay đổi
+    LaunchedEffect(photo.isFavorite) {
+        isFavorite = photo.isFavorite
+    }
 
     // Kiểm tra URI khi màn hình được hiển thị
     LaunchedEffect(photo.uri) {
@@ -52,33 +60,24 @@ fun PhotoDetailScreen(
                     }
                 },
                 actions = {
-                    // Nút chia sẻ - sử dụng intent chia sẻ hệ thống trực tiếp
+                    // Nút chia sẻ
                     IconButton(
                         onClick = {
                             if (isUriValid) {
-                                // Tạo Intent chia sẻ
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "image/*"
                                     putExtra(Intent.EXTRA_STREAM, Uri.parse(photo.uri))
-
-                                    // Thêm tiêu đề và mô tả nếu có
                                     putExtra(Intent.EXTRA_SUBJECT, photo.title)
                                     photo.description?.let { desc ->
                                         if (desc.isNotEmpty()) {
                                             putExtra(Intent.EXTRA_TEXT, desc)
                                         }
                                     }
-
-                                    // Cấp quyền đọc tạm thời
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
-
-                                // Hiển thị trực tiếp hộp thoại chia sẻ của hệ thống
                                 context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ ảnh"))
                             } else {
-                                // Hiển thị thông báo nếu URI không hợp lệ
                                 Log.e("PhotoDetailScreen", "Không thể chia sẻ - URI không hợp lệ")
-                                // Tùy chọn: hiển thị Toast thông báo lỗi
                             }
                         },
                         enabled = isUriValid
@@ -89,12 +88,19 @@ fun PhotoDetailScreen(
                         )
                     }
 
-                    // Nút yêu thích
-                    IconButton(onClick = { onToggleFavorite(photo) }) {
+                    // Nút yêu thích - Cập nhật logic
+                    IconButton(
+                        onClick = {
+                            // Cập nhật state local ngay lập tức để UI responsive
+                            isFavorite = !isFavorite
+                            // Gọi callback để cập nhật database
+                            onToggleFavorite(photo)
+                        }
+                    ) {
                         Icon(
-                            imageVector = if (photo.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (photo.isFavorite) "Bỏ yêu thích" else "Yêu thích",
-                            tint = if (photo.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Bỏ yêu thích" else "Yêu thích",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                         )
                     }
 

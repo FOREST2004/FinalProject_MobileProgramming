@@ -3,9 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 
-    // Xóa dòng này
-    // id("com.google.devtools.ksp")
-
     // Thêm plugin KAPT
     id("kotlin-kapt")
 }
@@ -43,15 +40,12 @@ android {
     buildFeatures {
         compose = true
     }
+}
 
-    // Xóa phần cấu hình KSP (nếu có) như đoạn code bên dưới:
-    // applicationVariants.all {
-    //     kotlin.sourceSets {
-    //         getByName(name) {
-    //             kotlin.srcDir("build/generated/ksp/$name/kotlin")
-    //         }
-    //     }
-    // }
+// THÊM PHẦN NÀY: Cấu hình KAPT
+kapt {
+    correctErrorTypes = true
+    useBuildCache = true
 }
 
 dependencies {
@@ -88,10 +82,10 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
 
-    // Thay thế ksp bằng kapt
-    // ksp("androidx.room:room-compiler:$room_version")
+    // KAPT cho Room
     kapt("androidx.room:room-compiler:$room_version")
 
+    // Gson
     implementation("com.google.code.gson:gson:2.10.1")
 
     testImplementation(libs.junit)
