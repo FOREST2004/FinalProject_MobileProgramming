@@ -37,8 +37,8 @@ A modern Android application for managing, editing, and sharing photos, built wi
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/photo-management.git
-   cd photo-management
+   git clone https://github.com/FOREST2004/FinalProject_MobileProgramming.git
+   cd FinalProject_MobileProgramming
    ```
 
 2. **Open the project in Android Studio**
